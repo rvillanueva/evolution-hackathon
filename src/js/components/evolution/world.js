@@ -1,6 +1,3 @@
-import DNA from './dna';
-import Agent from './agent';
-
 class World {
   constructor(options){
     this.options = options || {};
@@ -14,7 +11,7 @@ class World {
   init(){
     this.agents = [];
 
-    console.log(`Evolution world initialized!`)
+    console.log('Evolution world initialized!');
     console.log(`World size is [${this.width},${this.height}], started with ${seedSize} agents.`);
   }
 
@@ -22,7 +19,7 @@ class World {
     this.agents = [];
   }
 
-  createAgent(agent){
+  addAgent(agent){
     agent.id = this.idCounter;
     this.agents.push(agent);
     this.idCounter ++;
