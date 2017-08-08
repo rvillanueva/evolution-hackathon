@@ -9,7 +9,7 @@
  *********************************************************************************/
 
 import P5 from 'p5';
-import World from './components/evolution/world';
+import { World } from './components/evolution';
 import * as render from './components/render';
 import * as setup from './components/setup';
 
@@ -23,7 +23,7 @@ var fn = (p) => {
         console.log('Initialized.');
     };
 
-    p.draw = () =>{
+    p.draw = () => {
         p.background(205);
         p.stroke(4);
         world.agents.forEach(agent => {

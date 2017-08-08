@@ -1,4 +1,4 @@
-import Agent from '../evolution/agent';
+import { Agent } from '../evolution';
 
 export function setupWorld(world){
     for(var i = 0; i < 50; i++){
