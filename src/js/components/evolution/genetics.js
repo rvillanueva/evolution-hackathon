@@ -1,31 +1,21 @@
 // Classes
 
-export class Blueprint {
-    constructor() {
-        this.mutationRate = 0.1;
-        this.genes = [];
-    }
-    setMutationRate(x) {
-        this.mutationRate = x;
-    }
-    addGene(key) {
-      this.genes.push(new Gene('key', 0));
-    }
-}
-
 export class Gene {
-    constructor(key, value) {
+    constructor(key, value, express) {
         this.key = key;
         this.value = value;
+        this.express = express;
     }
 }
 
 export class DNA {
-    constructor(blueprint, options) {
+    constructor(genes) {
         this.genes = [];
-        this.blueprint = blueprint;
+        genes.forEach(gene => {
+            this.setGene(new Gene(gene.key, gene.value, gene.express));
+        });
         // the max percent a mutation can move the gene
-        this.blueprint.mutationPercent = this.blueprint.mutationPercent || 0.1;
+        this.mutationRate = this.mutationRate || 0.1;
     }
     reproduce(partnerDna) {
         var newDna = new DNA();
@@ -39,10 +29,8 @@ export class DNA {
         return newDna;
     }
     randomize() {
-        this.genes = [];
-        this.blueprint.genes.forEach(gene => {
-            var value = Math.floor(Math.random() * 100) / 100; // should be normal dist
-            this.setGene(gene.key, value);
+        this.genes.forEach(gene => {
+            gene.value = Math.floor(Math.random() * 100) / 100; // should be normal dist
         });
     }
     getGene(key) {
@@ -54,22 +42,26 @@ export class DNA {
         }
         throw new Error(`No gene with ${key} exists.`);
     }
-    setGene(key, value) {
-        if (value > 1) {
-            value = 1;
+    setGene(gene) {
+        if(!gene.value){
+            gene.value = 0;
         }
-        if (value < 0) {
-            value = 0;
+        if (gene.value > 1) {
+            gene.value = 1;
         }
-        value = Math.floor(value * 100) / 100;
+        if (gene.value < 0) {
+            gene.value = 0;
+        }
+        gene.value = Math.floor(gene.value * 1000) / 1000;
         for (var i = 0; i < this.genes.length; i++) {
             let gene = this.genes[i];
             if (gene.key == key) {
                 gene.value = value;
+                gene.express = express;
                 return;
             }
         }
-        this.genes.push(new Gene(key, value));
+        this.genes.push(gene);
     }
 }
 

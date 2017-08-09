@@ -1,134 +1,125 @@
-export function bounce(agent, world){
-    var position = agent.state.position;
-    var margin = 5;
-    if(position && (position.x > world.width - margin || position.x < margin)){
-        agent.state.velocity.x = agent.state.velocity.x * -1;
-    };
-    if(position && (position.y > world.height - margin || position.y < margin)){
-        agent.state.velocity.y = agent.state.velocity.y * -1;
-    };
-}
-
-export function applyVelocity(agent, world){
-    agent.state.velocity.limit(1);
-    agent.state.position.add(agent.state.velocity);
-}
-
-export function applyAcceleration(agent, world){
-    agent.state.acceleration.limit(1);
-    agent.state.position.add(agent.state.acceleration);
-}
-
-export function stopAtBorders(agent, world){
-    var position = agent.state.position;
-    if(position.x > world.width){
-        position.x = world.width;
-    };
-    if(position.x < 0){
-        position.x = 0;
-    };
-    if(position.y > world.height){
-        position.y = world.height;
-    };
-    if(position.y < 0){
-        position.y = 0;
+export function bounce(){
+    return function(agent, world){
+        var position = agent.state.position;
+        var margin = 5;
+        if(position.x > (world.width - margin)){
+            agent.state.position.x = world.width - margin;
+            agent.state.velocity.x = agent.state.velocity.x * -1;
+        };
+        if(position.x < margin){
+            agent.state.position.x = margin;
+            agent.state.velocity.x = agent.state.velocity.x * -1;
+        };
+        if(position.y > (world.height - margin)){
+            agent.state.position.y = world.height - margin;
+            agent.state.velocity.y = agent.state.velocity.y * -1;
+        };
+        if(position.y < margin){
+            agent.state.position.y = margin;
+            agent.state.velocity.y = agent.state.velocity.y * -1;
+        };
     };
 }
 
-export function groupWithAgents(agent, world){
-    var sum = createVector(0, 0);
-    var count = 0;
-    for (var i = 0; i < world.agents.length; i++) {
-        var a = world.agents[i];
-        var dist = a.state.position.dist(agent.state.position);
-        if ((dist > 0) && (dist < 100)) {
+export function applyVelocity(){
+    return function(agent, world){
+        agent.state.velocity.limit(agent.traits.maxSpeed);
+        agent.state.position.add(agent.state.velocity);
+    };
+}
+
+export function applyAcceleration(){
+    return function(agent, world){
+        agent.state.acceleration.limit(agent.traits.maxAccel);
+        agent.state.position.add(agent.state.acceleration);
+    };
+}
+
+export function groupWithAgentsByType(type, trait){
+    return function(agent, world){
+        var sum = createVector(0, 0);
+        var count = 0;
+        var agents = world.agents.filter(a => {
+            var dist = a.state.position.dist(agent.state.position);
+            return dist > 0 && dist < agent.traits.vision && a.type == type;
+        });
+        for (var i = 0; i < agents.length; i++) {
+            var a = agents[i];
+            var dist = a.state.position.dist(agent.state.position);
             sum.add(a.state.position);
-            count++;
         }
-    }
-    if (count > 0) {
-        sum.div(count);
-        sum.sub(agent.state.position);
-        sum.normalize();
-        sum.mult(2);
-        var steer = sum.copy();
-        steer.sub(agent.state.velocity);
-        steer.mult(3);
-        steer.limit(0.2);
-        applyForce(agent, steer);
-    }
+        if(count > 0){
+            sum.div(agents.length);
+            sum.normalize();
+            sum.mult(agent.traits[trait] || 1);
+            applySteering(agent, sum, agent.traits.maxSpeed, agent.traits.maxAccel);
+        }
+    };
 }
 
-export function separateFromAgents(agent, world){
-  var sum = createVector(0,0);
-  var count = 0;
-  for ( var i =0; i < world.agents.length; i++){
-    var a = world.agents[i];
-    var dist = a.state.position.dist(agent.state.position);
-    if ((dist > 0) && (dist < 30)) {
-      var diff = agent.state.position.copy();
-      diff.sub(a.state.position);
-      diff.normalize();
-      diff.div(dist);
-      sum.add(diff);
-      count++;
-    }
-  }
-  if(count>0){
-    sum.div(count);
-    sum.normalize();
-    sum.mult(2);
-    var steer = sum.copy();
-    steer.sub(agent.state.velocity);
-    steer.limit(2);
-    //steer.mulS(5)
-    applyForce(agent, steer);
-  }
+export function separateFromAgentsByType(type, trait){
+    return function(agent, world){
+        var sum = createVector(0,0);
+        var agents = world.agents.filter(a => {
+            var dist = a.state.position.dist(agent.state.position);
+            return dist > 0 && dist < agent.traits.vision && a.type == type;
+        });
+        for (var i = 0; i < agents.length; i++){
+            var a = agents[i];
+            var diff = agent.state.position.copy();
+            var dist = a.state.position.dist(agent.state.position);
+            diff.sub(a.state.position);
+            diff.normalize();
+            diff.div(dist);
+            sum.add(diff);
+        }
+        if(agents.length > 0){
+            sum.div(agents.length);
+            sum.normalize();
+            sum.mult(agent.traits[trait] || 1);
+            applySteering(agent, sum, agent.traits.maxSpeed, agent.traits.maxAccel);
+        }
+
+    };
 }
 
-export function alignWithAgents(agent, world){
-    var sum = createVector(0,0);
-    var count = 0;
-    for ( var i = 0; i < world.agents.length; i++){
-      var a = world.agents[i];
-      var dist = a.state.position.dist(agent.state.position);
-      if ((dist > 0) && (dist < 100)) {
-        sum.add(a.state.velocity);
-        count ++;
-      }
-    }
-    if(count > 0){
-      sum.div(count);
-      sum.normalize();
-      sum.mult(2);
-      var steer = sum.copy();
-      steer.sub(agent.state.velocity);
-      steer.limit(1);
-      applyForce(agent, steer);
-    }
+export function alignWithAgentsByType(type, trait){
+    return function(agent, world){
+        var sum = createVector(0,0);
+        var agents = world.agents.filter(a => {
+            var dist = a.state.position.dist(agent.state.position);
+            return dist > 0 && dist < agent.traits.vision && a.type == type;
+        });
+        for ( var i = 0; i < agents.length; i++){
+          var a = agents[i];
+          var dist = a.state.position.dist(agent.state.position);
+          sum.add(a.state.velocity);
+        }
+        if(agents.length > 0){
+            sum.div(agents.length);
+            sum.normalize();
+            sum.mult(agent.traits[trait] || 1);
+            applySteering(agent, sum, agent.traits.maxSpeed, agent.traits.maxAccel);
+        }
+    };
+}
+
+export function resetAcceleration(){
+    return function(agent, world){
+        agent.state.acceleration = createVector(0,0);
+    };
 }
 
 function applyForce(agent, force){
   agent.state.acceleration.add(force);
 };
 
-function applyGroupForce(agent, agents, magFn){
-    var sum = createVector(0,0);
-    var count = 0;
-    for ( var i = 0; i < agents.length; i++){
-      var a = agents[i];
-      var dist = a.state.position.dist(agent.state.position);
-      sum.add(a.state.velocity);
-    }
-    if(agents.length > 0){
-      sum.div(count);
-      sum.normalize();
-      sum.mult(2);
+function applySteering(agent, sum, maxSpeed, maxAccel){
+      sum.mult(maxSpeed);
       var steer = sum.copy();
       steer.sub(agent.state.velocity);
-      steer.limit(1);
+      steer.limit(maxAccel);
       applyForce(agent, steer);
-    }
 }
 
 /*

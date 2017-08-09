@@ -1,13 +1,17 @@
 class Agent {
-  constructor(w){
+  constructor(dna){
     this.id;
     this.dna;
+    this.traits = {};
   	this.state = {};
     this.behaviors = [];
   }
 
-  setDna(dna){
+  setDNA(dna){
       this.dna = dna;
+      this.dna.genes.forEach(gene => {
+          this.traits[gene.key] = gene.express(gene.value);
+      });
   }
 
   setState(key, value){
