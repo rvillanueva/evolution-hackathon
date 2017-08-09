@@ -8,16 +8,22 @@
  1. DEPENDENCIES
  *********************************************************************************/
 
-import P5 from 'p5';
+import p5 from 'p5';
 import { World } from './components/evolution';
 import * as render from './components/render';
 import * as setup from './components/setup';
 
-var world = new World();
-
-var fn = (p) => {
+const width = 800;
+const height = 500;
+const fps = 20;
+var world = new World({
+    width: width,
+    height: height,
+    fps: fps
+});
+var sketch = (p) => {
     p.setup = () => {
-        var canvas = p5.createCanvas(500, 500);
+        var canvas = p.createCanvas(width, height);
         canvas.parent('#main-canvas');
         setup.setupWorld(world);
         console.log('Initialized.');
@@ -27,9 +33,12 @@ var fn = (p) => {
         p.background(205);
         p.stroke(4);
         world.agents.forEach(agent => {
+            agent.update(world);
+        });
+        world.agents.forEach(agent => {
             render.drawAgent(p, agent);
         });
     };
 };
 
-var p5 = new P5(fn);
+var myP5 = new p5(sketch);

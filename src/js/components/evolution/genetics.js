@@ -21,11 +21,11 @@ export class Gene {
 }
 
 export class DNA {
-    constructor(blueprint) {
-        this.options = options || {};
-        this.options.mutationRate = this.options.mutationRate || 0.1; // the max percent a mutation can move the gene
+    constructor(blueprint, options) {
         this.genes = [];
         this.blueprint = blueprint;
+        // the max percent a mutation can move the gene
+        this.blueprint.mutationPercent = this.blueprint.mutationPercent || 0.1;
     }
     reproduce(partnerDna) {
         var newDna = new DNA();
@@ -33,7 +33,7 @@ export class DNA {
             var gene = this.genes[i];
             var key = gene.key;
             var partnerGene = partnerDna.getGene(key);
-            var newValue = mutate(selectRandom([partnerGene.value, gene.value]));
+            var newValue = mutate(selectRandom([partnerGene.value, gene.value]), this.blueprint.mutationPercent);
             newDna.setGene(key, newValue);
         }
         return newDna;
@@ -79,8 +79,8 @@ function selectRandom(arr) {
     return arr[Math.floor(arr.length & Math.random)];
 }
 
-function mutate(baseValue) {
-    var mutation = (Math.random() - 0.5) * 2 * maxMutation;
+function mutate(baseValue, mutationPercent) {
+    var mutation = (Math.random() - 0.5) * 2 * mutationPercent;
     var mutated = baseValue + mutation;
     return mutated;
 }

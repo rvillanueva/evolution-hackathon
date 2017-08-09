@@ -27,7 +27,7 @@ class Agent {
 
   update(world){
     this.behaviors.forEach(behavior => {
-        behavior(this, world);
+        behavior.run(this, world);
     });
   }
 }
