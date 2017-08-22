@@ -13,8 +13,8 @@ import { World } from './components/evolution';
 import * as render from './components/render';
 import * as setup from './components/setup';
 
-const width = 800;
-const height = 500;
+const width = 1080;
+const height = 1920;
 const fps = 20;
 var world = new World({
     width: width,
@@ -30,7 +30,7 @@ var sketch = (p) => {
     };
 
     p.draw = () => {
-        p.background(205);
+        p.background(10);
         p.stroke(4);
         world.agents.forEach(agent => {
             agent.update(world);

@@ -32,6 +32,24 @@ export const sheep = {
             express: function(val){
                 return val * 500;
             }
+        },
+        {
+            key: 'color-h',
+            express: function(val){
+                return Math.floor(val * 360);
+            }
+        },
+        {
+            key: 'color-s',
+            express: function(val){
+                return Math.floor(val * 60);
+            }
+        },
+        {
+            key: 'color-l',
+            express: function(val){
+                return Math.floor(val * 30 + 60);
+            }
         }
     ],
     behaviors: [
