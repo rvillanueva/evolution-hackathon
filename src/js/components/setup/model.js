@@ -12,7 +12,7 @@ module.exports = {
         }, {
             key: 'maxAccel',
             express: function(val){
-                return val * 2 + 0.1;
+                return val * 0.5 + 0.1;
             }
         },
         {
@@ -54,25 +54,25 @@ module.exports = {
         {
             key: 'seekFriends',
             express: function(val){
-                return val * 10;
+                return val * 400;
             }
         },
         {
             key: 'seekEnemies',
             express: function(val){
-                return val * 10;
+                return val * 100;
             }
         },
         {
             key: 'fleeEnemies',
             express: function(val){
-                return val * 10;
+                return val * 4000;
             }
         },
         {
             key: 'fleeFriends',
             express: function(val){
-                return val * 10;
+                return val * 100;
             }
         },
         {
@@ -86,6 +86,12 @@ module.exports = {
             express: function(val){
                 return val;
             }
+        },
+        {
+            key: 'fear',
+            express: function(val){
+                return val * 100;
+            }
         }
     ],
     behaviors: [
@@ -94,14 +100,22 @@ module.exports = {
       new Behavior(behaviors.perceive()),
       new Behavior(behaviors.labelPerceivedAgents()),
       new Behavior(behaviors.resetAcceleration()),
-      new Behavior(behaviors.groupWithAgentsByStatus('friend', 'seekFriends')),
-      new Behavior(behaviors.groupWithAgentsByStatus('enemy', 'seekEnemies')),
-      new Behavior(behaviors.separateFromAgentsByStatus('friend', 'fleeFriends')),
-      new Behavior(behaviors.separateFromAgentsByStatus('enemy', 'fleeEnemies')),
+      //new Behavior(behaviors.groupWithAgentsByStatus('friend', 'seekFriends')),
+      //new Behavior(behaviors.groupWithAgentsByStatus('enemy', 'seekEnemies')),
+      new Behavior(behaviors.applyAgentAttraction(function(agent, p){
+        var force = createVector();
+        if(p.agent.threat * agent.traits.fear){
+          force.add(p.agent.position);
+          force.normalize();
+        }
+        return force;
+      })),
+      //new Behavior(behaviors.separateFromAgentsByStatus('enemy', 'fleeEnemies')),
       //new Behavior(behaviors.alignWithAgents()),
       new Behavior(behaviors.reproduceWithNearbyAgents()),
       new Behavior(behaviors.killNearbyAgents()),
       new Behavior(behaviors.setAppearance()),
+      new Behavior(behaviors.applyForces()),
       new Behavior(behaviors.applyAcceleration()),
       new Behavior(behaviors.applyVelocity()),
       new Behavior(behaviors.dieIfDead())

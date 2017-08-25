@@ -12,18 +12,15 @@ import p5 from 'p5';
 import { World } from './components/evolution';
 import * as render from './components/render';
 import * as setup from './components/setup';
-
-const width = 1080;
-const height = 1920;
-const fps = 20;
+import config from './config';
 var world = new World({
-    width: width,
-    height: height,
-    fps: fps
+    width: config.width,
+    height: config.height,
+    fps: config.fps
 });
 var sketch = (p) => {
     p.setup = () => {
-        var canvas = p.createCanvas(width, height);
+        var canvas = p.createCanvas(config.width, config.height);
         canvas.parent('#main-canvas');
         setup.setupWorld(world);
         console.log('Initialized.');
@@ -46,6 +43,9 @@ var myP5 = new p5(sketch);
 setInterval(() => {
   writeLog();
 }, 200)
+setInterval(() => {
+  console.log(world);
+}, 2000)
 
 function writeLog(){
   var agentCount = 0;
@@ -66,9 +66,10 @@ function writeLog(){
     })
   })
   var str = '';
+  str += `<p>Agents: ${world.agents.length}</p>`;
   keys.map(key => {
     var average = Math.floor(index[key].total/index[key].count * 100)/100;
-    str += `<p>${key}: ${average}</p>`
+    str += `<p>${key}: ${average}</p>`;
   })
   document.getElementById('ev-log').innerHTML = str;
 }

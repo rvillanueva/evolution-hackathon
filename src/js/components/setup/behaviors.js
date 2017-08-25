@@ -1,3 +1,5 @@
+import config from '../../config';
+
 export function perceive(){
     return function(agent, world){
       agent.perceived = {
@@ -10,7 +12,13 @@ export function perceive(){
         var pushed = {
           id: a.id,
           agent: a,
-          distance: a.state.position.dist(agent.state.position)
+          distance: a.state.position.dist(agent.state.position),
+          threat: a.state.kills,
+          effects: {
+            attraction: createVector(),
+            alignment: createVector(),
+            list: []
+          }
         }
         agent.perceived.agents.push(pushed);
       })
@@ -20,18 +28,32 @@ export function perceive(){
 export function labelPerceivedAgents(){
     return function(agent, world){
       agent.perceived.agents.forEach(a => {
-        if(a.agent.state.kills > Math.floor(agent.traits.vengefulness * 10) || agent.traits.aggression/2 > a.agent.traits.aggression){
+        if(a.agent.state.kills > agent.traits.fearOfKillers){
           a.status = 'enemy';
+        } else if (a.agent.state.energy < agent.state.energy){
+          a.status = 'prey';
         } else {
-          a.status = 'friend';
+          a.status = 'friend'
         }
       })
     };
 }
 
+export function increaseHunger(){
+    return function(agent, world){
+      if(agent.state.hunger < 0){
+        agent.state.hunger = 0;
+      }
+      agent.state.hunger += 1/config.fps;
+      if(agent.state.hunger > 10){
+        agent.state.energy -= 1/config.fps;
+      }
+    }
+}
+
 export function getEnergy(){
     return function(agent, world){
-      agent.state.energy += 50 - world.agents.length;
+      agent.state.energy += (50 - world.agents.length) * 0.1;
     }
 }
 
@@ -92,46 +114,15 @@ export function applyVelocity(){
 
 export function groupWithAgentsByStatus(status, trait){
     return function(agent, world){
-        var sum = createVector(0, 0);
-        var agents = agent.perceived.agents.filter(a => {
-            return a.status == status;
+        agent.perceived.agents.forEach(a => {
+          if(a.status == status){
+            var force = a.agent.state.position.copy();
+            force.normalize();
+            force.mult(agent.traits[trait]/a.distance || 1);
+            a.forces.vector.add(force);
+            a.forces.count ++;
+          }
         });
-        for (var i = 0; i < agents.length; i++) {
-            var a = agents[i];
-            sum.add(a.agent.state.position);
-        }
-        if(agents.length > 0){
-            sum.div(agents.length);
-            sum.normalize();
-            sum.mult(agent.traits[trait] || 1);
-            applySteering(agent, sum, agent.traits.maxSpeed, agent.traits.maxAccel);
-        }
-    };
-}
-
-export function separateFromAgentsByType(type, trait){
-    return function(agent, world){
-        var sum = createVector(0,0);
-        var agents = world.agents.filter(a => {
-            var dist = a.state.position.dist(agent.state.position);
-            return dist > 0 && dist < agent.traits.vision && a.type == type;
-        });
-        for (var i = 0; i < agents.length; i++){
-            var a = agents[i];
-            var diff = agent.state.position.copy();
-            var dist = a.state.position.dist(agent.state.position);
-            diff.sub(a.state.position);
-            diff.normalize();
-            diff.div(dist);
-            sum.add(diff);
-        }
-        if(agents.length > 0){
-            sum.div(agents.length);
-            sum.normalize();
-            sum.mult(agent.traits[trait] || 1);
-            applySteering(agent, sum, agent.traits.maxSpeed, agent.traits.maxAccel);
-        }
-
     };
 }
 
@@ -162,7 +153,7 @@ export function killNearbyAgents(){
     return function(agent, world){
         agent.perceived.agents.map(a => {
           var targeted = world.getAgentById(a.id);
-          if (a.distance < agent.traits.killRange && a.status === 'enemy' && targeted.state.energy < (agent.state.energy + 100)) {
+          if (a.distance < agent.width && a.status === 'prey') {
             console.log(`${agent.id} killed ${a.id}`);
             if(targeted){
               killAgentById(targeted.id, world);
@@ -175,50 +166,16 @@ export function killNearbyAgents(){
     };
 }
 
-export function separateFromAgentsByViolence(){
+export function applyAgentAttraction(calc, name){
     return function(agent, world){
-        for (var i = 0; i < agent.perceived.agents.length; i++){
-            var a = agents[i];
-            var diff = agent.state.position.copy();
-            var dist = a.state.position.dist(agent.state.position);
-            diff.sub(a.state.position);
-            diff.normalize();
-            diff.div(dist);
-            diff.mult(a.state.kills * agent.traits.aversionToViolence);
-            sum.add(diff);
-        }
-        if(agents.length > 0){
-            sum.div(agents.length);
-            sum.normalize();
-            sum.mult(agent.traits[trait] || 1);
-            applySteering(agent, sum, agent.traits.maxSpeed, agent.traits.maxAccel);
-        }
-
-    };
-}
-
-export function separateFromAgentsByStatus(status, trait){
-    return function(agent, world){
-      var agents = agent.perceived.agents.filter(a => {
-        return a.status == status
+      agent.perceived.agents.forEach(a => {
+        var force = calc(agent, a);
+        a.effects.attraction.add(force);
+        a.effects.list.push({
+          name: name,
+          force: force
+        })
       })
-        for (var i = 0; i < agents.length; i++){
-            var a = agents[i];
-            var diff = agent.state.position.copy();
-            var dist = a.distance;
-            var sum = createVector();
-            diff.sub(a.agent.state.position);
-            diff.normalize();
-            diff.div(dist);
-            sum.add(diff);
-        }
-        if(agents.length > 0){
-            sum.div(agents.length);
-            sum.normalize();
-            sum.mult(agent.traits[trait] || 1);
-            applySteering(agent, sum, agent.traits.maxSpeed, agent.traits.maxAccel);
-        }
-
     };
 }
 
@@ -243,8 +200,20 @@ export function reproduceWithNearbyAgents(){
 
 export function setAppearance(){
     return function(agent, world){
-      agent.state.width = Math.log(agent.state.energy + 1) * 2.2 + 2;
-      agent.state.height = Math.log(agent.state.energy + 1) * 2.2 + 2;
+      agent.state.width = 20 + agent.state.energy/100;
+      agent.state.height = 20 + agent.state.energy/100;
+    };
+}
+
+export function applyForces(){
+    return function(agent, world){
+      var sum = createVector();
+      agent.perceived.agents.map(a => {
+        sum.add(a.effects.attraction);
+      });
+      sum.normalize();
+      sum.mult(agent.traits.maxAccel);
+      agent.state.acceleration.add(sum);
     };
 }
 
