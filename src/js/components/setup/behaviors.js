@@ -1,3 +1,40 @@
+export function perceive(){
+    return function(agent, world){
+      agent.perceived = {
+        agents: []
+      }
+      world.agents.forEach(a => {
+        if(a.id == agent.id){
+          return;
+        }
+        var pushed = {
+          id: a.id,
+          agent: a,
+          distance: a.state.position.dist(agent.state.position)
+        }
+        agent.perceived.agents.push(pushed);
+      })
+    };
+}
+
+export function labelPerceivedAgents(){
+    return function(agent, world){
+      agent.perceived.agents.forEach(a => {
+        if(a.agent.state.kills > Math.floor(agent.traits.vengefulness * 10) || agent.traits.aggression/2 > a.agent.traits.aggression){
+          a.status = 'enemy';
+        } else {
+          a.status = 'friend';
+        }
+      })
+    };
+}
+
+export function getEnergy(){
+    return function(agent, world){
+      agent.state.energy += 50 - world.agents.length;
+    }
+}
+
 export function bounce(){
     return function(agent, world){
         var position = agent.state.position;
@@ -21,6 +58,31 @@ export function bounce(){
     };
 }
 
+export function wrap(){
+    return function(agent, world){
+        var position = agent.state.position;
+        if(position.x > (world.width + agent.state.width)){
+            agent.state.position.x = -agent.state.width;
+        };
+        if(position.x < -agent.state.width){
+            agent.state.position.x = world.width + agent.state.width;
+        };
+        if(position.y > (world.height + agent.state.height)){
+            agent.state.position.y = -agent.state.height;
+        };
+        if(position.y < -agent.state.height){
+            agent.state.position.y = world.height + agent.state.height;
+        };
+    };
+}
+
+export function applyAcceleration(){
+    return function(agent, world){
+        agent.state.acceleration.limit(agent.traits.maxAccel);
+        agent.state.velocity.add(agent.state.acceleration);
+    };
+}
+
 export function applyVelocity(){
     return function(agent, world){
         agent.state.velocity.limit(agent.traits.maxSpeed);
@@ -28,27 +90,17 @@ export function applyVelocity(){
     };
 }
 
-export function applyAcceleration(){
-    return function(agent, world){
-        agent.state.acceleration.limit(agent.traits.maxAccel);
-        agent.state.position.add(agent.state.acceleration);
-    };
-}
-
-export function groupWithAgentsByType(type, trait){
+export function groupWithAgentsByStatus(status, trait){
     return function(agent, world){
         var sum = createVector(0, 0);
-        var count = 0;
-        var agents = world.agents.filter(a => {
-            var dist = a.state.position.dist(agent.state.position);
-            return dist > 0 && dist < agent.traits.vision && a.type == type;
+        var agents = agent.perceived.agents.filter(a => {
+            return a.status == status;
         });
         for (var i = 0; i < agents.length; i++) {
             var a = agents[i];
-            var dist = a.state.position.dist(agent.state.position);
-            sum.add(a.state.position);
+            sum.add(a.agent.state.position);
         }
-        if(count > 0){
+        if(agents.length > 0){
             sum.div(agents.length);
             sum.normalize();
             sum.mult(agent.traits[trait] || 1);
@@ -83,20 +135,16 @@ export function separateFromAgentsByType(type, trait){
     };
 }
 
-export function alignWithAgentsByType(type, trait){
+export function alignWithAgents(trait){
     return function(agent, world){
         var sum = createVector(0,0);
-        var agents = world.agents.filter(a => {
-            var dist = a.state.position.dist(agent.state.position);
-            return dist > 0 && dist < agent.traits.vision && a.type == type;
-        });
-        for ( var i = 0; i < agents.length; i++){
-          var a = agents[i];
+        for ( var i = 0; i < world.agents.length; i++){
+          var a = world.agents[i];
           var dist = a.state.position.dist(agent.state.position);
           sum.add(a.state.velocity);
         }
-        if(agents.length > 0){
-            sum.div(agents.length);
+        if(world.agents.length > 0){
+            sum.div(world.agents.length);
             sum.normalize();
             sum.mult(agent.traits[trait] || 1);
             applySteering(agent, sum, agent.traits.maxSpeed, agent.traits.maxAccel);
@@ -110,6 +158,104 @@ export function resetAcceleration(){
     };
 }
 
+export function killNearbyAgents(){
+    return function(agent, world){
+        agent.perceived.agents.map(a => {
+          var targeted = world.getAgentById(a.id);
+          if (a.distance < agent.traits.killRange && a.status === 'enemy' && targeted.state.energy < (agent.state.energy + 100)) {
+            console.log(`${agent.id} killed ${a.id}`);
+            if(targeted){
+              killAgentById(targeted.id, world);
+              agent.state.kills = agent.state.kills || 0;
+              agent.state.kills ++;
+              agent.state.energy += targeted.state.energy / 2;
+            }
+          };
+        })
+    };
+}
+
+export function separateFromAgentsByViolence(){
+    return function(agent, world){
+        for (var i = 0; i < agent.perceived.agents.length; i++){
+            var a = agents[i];
+            var diff = agent.state.position.copy();
+            var dist = a.state.position.dist(agent.state.position);
+            diff.sub(a.state.position);
+            diff.normalize();
+            diff.div(dist);
+            diff.mult(a.state.kills * agent.traits.aversionToViolence);
+            sum.add(diff);
+        }
+        if(agents.length > 0){
+            sum.div(agents.length);
+            sum.normalize();
+            sum.mult(agent.traits[trait] || 1);
+            applySteering(agent, sum, agent.traits.maxSpeed, agent.traits.maxAccel);
+        }
+
+    };
+}
+
+export function separateFromAgentsByStatus(status, trait){
+    return function(agent, world){
+      var agents = agent.perceived.agents.filter(a => {
+        return a.status == status
+      })
+        for (var i = 0; i < agents.length; i++){
+            var a = agents[i];
+            var diff = agent.state.position.copy();
+            var dist = a.distance;
+            var sum = createVector();
+            diff.sub(a.agent.state.position);
+            diff.normalize();
+            diff.div(dist);
+            sum.add(diff);
+        }
+        if(agents.length > 0){
+            sum.div(agents.length);
+            sum.normalize();
+            sum.mult(agent.traits[trait] || 1);
+            applySteering(agent, sum, agent.traits.maxSpeed, agent.traits.maxAccel);
+        }
+
+    };
+}
+
+export function reproduceWithNearbyAgents(){
+    return function(agent, world){
+        var nearby = world.agents.filter(a => {
+          return a.state.position.dist(agent.state.position) < 50 && a !== agent;
+        })
+        nearby.map(a => {
+          var cost = Math.max(agent.state.energy * 0.2, 20);
+          if(Math.random() < agent.traits.reproductionRate && world.agents.length < 150 && agent.state.energy/2 > cost){
+            console.log(`${agent.id} reproduced with ${a.id}`);
+            var newDNA = agent.dna.reproduce(a.dna);
+            var newAgent = world.setupAgent(newDNA);
+            newAgent.state.position = agent.state.position.copy();
+            world.addAgent(newAgent);
+            agent.state.energy -= cost;
+          }
+        })
+    };
+}
+
+export function setAppearance(){
+    return function(agent, world){
+      agent.state.width = Math.log(agent.state.energy + 1) * 2.2 + 2;
+      agent.state.height = Math.log(agent.state.energy + 1) * 2.2 + 2;
+    };
+}
+
+export function dieIfDead(){
+    return function(agent, world){
+      if(agent.state.dead || agent.state.energy < 0){
+        killAgentById(agent.id, world);
+      }
+    };
+}
+
 function applyForce(agent, force){
   agent.state.acceleration.add(force);
 };
@@ -120,6 +266,10 @@ function applySteering(agent, sum, maxSpeed, maxAccel){
       steer.sub(agent.state.velocity);
       steer.limit(maxAccel);
       applyForce(agent, steer);
+}
+
+function killAgentById(agentId, world){
+  world.removeAgentById(agentId);
 }
 
 /*

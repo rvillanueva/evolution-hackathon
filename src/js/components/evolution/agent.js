@@ -1,5 +1,5 @@
 class Agent {
-  constructor(dna){
+  constructor(){
     this.id;
     this.dna;
     this.traits = {};

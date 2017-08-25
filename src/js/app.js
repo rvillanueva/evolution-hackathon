@@ -30,7 +30,7 @@ var sketch = (p) => {
     };
 
     p.draw = () => {
-        p.background(10);
+        p.background(255);
         p.stroke(4);
         world.agents.forEach(agent => {
             agent.update(world);
@@ -42,3 +42,33 @@ var sketch = (p) => {
 };
 
 var myP5 = new p5(sketch);
+
+setInterval(() => {
+  writeLog();
+}, 200)
+
+function writeLog(){
+  var agentCount = 0;
+  var index = {};
+  var keys = [];
+  world.agents.map(agent => {
+    agentCount ++;
+    agent.dna.genes.map(gene =>{
+      if(keys.indexOf(gene.key) === -1){
+        keys.push(gene.key);
+      }
+      index[gene.key] = index[gene.key] || {
+        total: 0,
+        count: 0
+      }
+      index[gene.key].total += gene.value;
+      index[gene.key].count ++;
+    })
+  })
+  var str = '';
+  keys.map(key => {
+    var average = Math.floor(index[key].total/index[key].count * 100)/100;
+    str += `<p>${key}: ${average}</p>`
+  })
+  document.getElementById('ev-log').innerHTML = str;
+}

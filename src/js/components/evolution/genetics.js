@@ -18,13 +18,14 @@ export class DNA {
         this.mutationRate = this.mutationRate || 0.1;
     }
     reproduce(partnerDna) {
-        var newDna = new DNA();
+        var newDna = new DNA(partnerDna.genes);
         for (var i = 0; i < this.genes.length; i++) {
             var gene = this.genes[i];
             var key = gene.key;
             var partnerGene = partnerDna.getGene(key);
-            var newValue = mutate(selectRandom([partnerGene.value, gene.value]), this.blueprint.mutationPercent);
-            newDna.setGene(key, newValue);
+            var newValue = mutate(selectRandom([partnerGene.value, gene.value]), this.mutationRate);
+            gene.value = newValue
+            newDna.setGene(gene);
         }
         return newDna;
     }
