@@ -7,14 +7,18 @@ const math = require('mathjs');
 
 export function setupWorld(world) {
     world.setupAgent = setupAgent;
+    world.setupRandomAgent = setupRandomAgent;
 
     for (let i = 0; i < 50; i++) {
+        setupRandomAgent();
+    }
+
+    function setupRandomAgent(){
         let dna = new DNA(AgentModel.genes);
         dna.randomize();
         let agent = world.setupAgent(dna);
         world.addAgent(agent);
     }
-
 
     function setupAgent(dna) {
         var config = AgentModel;
@@ -22,7 +26,9 @@ export function setupWorld(world) {
         agent.type = config.type;
         AgentModel.perceptrons.map(perceptron => {
             AgentModel.effects.map(effect => {
-                dna.setGene(new Gene(`weight_${perceptron.key}_${effect.key}`, Math.random(), (val) => { return val; }));
+                dna.setGene(new Gene(`weight_${perceptron.key}_${effect.key}`, Math.random(), (val) => {
+                    return val;
+                }));
             });
         });
         agent.setDNA(dna);
@@ -32,7 +38,7 @@ export function setupWorld(world) {
         agent.state.position = createVector(Math.floor(Math.random() * world.width), Math.floor(Math.random() * world.height));
         agent.state.velocity = createVector((Math.random() - 0.5) * 10, (Math.random() - 0.5) * 10);
         agent.state.acceleration = createVector(0, 0);
-        agent.state.energy = 100;
+        agent.state.energy = 100 + (Math.random() - 0.5) * 2 * 50;
         agent.state.kills = 0;
         var arr1 = [];
         AgentModel.perceptrons.map(perceptron => {

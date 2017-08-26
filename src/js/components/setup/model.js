@@ -70,6 +70,12 @@ var genes = [
         express: function(val){
             return val * 100;
         }
+    },
+    {
+        key: 'offspringSize',
+        express: function(val){
+            return val * 0.4;
+        }
     }
 ];
 
@@ -83,6 +89,12 @@ var perceptrons = [{
   key: 'kills',
   input: (agent, p) => {
     return normalize(p.agent.state.kills, 0, 50);
+  }
+},
+{
+  key: 'foodchain',
+  input: (agent, p) => {
+    return normalize(p.agent.traits.foodchain, 0, 50);
   }
 }];
 
@@ -100,7 +112,7 @@ var modelBehaviors = [
   new Behavior(behaviors.resetAcceleration()),
   new Behavior(behaviors.applyEffects()),
   new Behavior(behaviors.reproduceWithNearbyAgents()),
-  new Behavior(behaviors.killNearbyAgents()),
+  new Behavior(behaviors.eatAdjacentAgents()),
   new Behavior(behaviors.setAppearance()),
   new Behavior(behaviors.applyAcceleration()),
   new Behavior(behaviors.applyVelocity()),

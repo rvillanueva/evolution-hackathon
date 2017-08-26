@@ -46,11 +46,11 @@ export function applyEffects(){
 
 export function adjustEnergy(){
 	return function(agent, world){
-        var change = 4 * (agent.traits.foodchain - 0.5)/config.fps;
-        if(world.agents.length < 25){
-            change += 2/(world.agents.length + 1);
-        }
-	  agent.state.energy += change;
+        var change = -4 * (agent.traits.foodchain - 0.7)/config.fps;
+        change -= agent.state.energy / 100 /config.fps;
+        change -= agent.traits.maxSpeed / 5 / config.fps;
+	    agent.state.energy += change;
+        agent.state.energyChange = change * config.fps;
     };
 }
 
@@ -146,18 +146,16 @@ export function resetAcceleration(){
 	};
 }
 
-export function killNearbyAgents(){
+export function eatAdjacentAgents(){
 	return function(agent, world){
 		agent.perceived.agents.map(a => {
 		  var targeted = world.getAgentById(a.id);
-		  if (targeted && a.distance < agent.state.width && targeted.traits.foodchain < agent.traits.foodchain * 0.8) {
-			if(targeted){
+		  if (targeted && a.distance < (agent.state.width + a.agent.state.width)/2.2 && targeted.traits.foodchain < agent.traits.foodchain * 0.8) {
                 console.log(`${agent.id} killed ${a.id}`);
 			  killAgentById(targeted.id, world);
 			  agent.state.kills = agent.state.kills || 0;
 			  agent.state.kills ++;
-			  agent.state.energy += targeted.state.energy / 2;
-			}
+			  agent.state.energy += targeted.state.energy * 0.75;
 		  };
       });
 	};
@@ -171,25 +169,23 @@ export function applyAgentAttraction(calc, name){
 		a.effects.list.push({
 		  name: name,
 		  force: force
-		})
-	  })
+      });
+  });
 	};
 }
 
 export function reproduceWithNearbyAgents(){
 	return function(agent, world){
-		var nearby = world.agents.filter(a => {
-		  return a.state.position.dist(agent.state.position) < 50 && a !== agent;
-      });
-		nearby.map(a => {
-		  var cost = Math.max(agent.state.energy * 0.2, 20);
-		  if(Math.random() < agent.traits.reproductionRate && world.agents.length < 150 && agent.state.energy/2 > cost){
+		agent.perceived.agents.map(a => {
+		  if(a.distance < (agent.state.width + a.agent.state.width)/2.2 && Math.random() < agent.traits.reproductionRate && world.agents.length < 100 && agent.perceived.agents < 25){
 			console.log(`${agent.id} reproduced with ${a.id}`);
-			var newDNA = agent.dna.reproduce(a.dna);
+            var cost = agent.traits.offspringSize * agent.state.energy;
+			var newDNA = agent.dna.reproduce(a.agent.dna);
 			var newAgent = world.setupAgent(newDNA);
 			newAgent.state.position = agent.state.position.copy();
+            newAgent.state.energy = cost;
+            agent.state.energy -= cost;
 			world.addAgent(newAgent);
-			agent.state.energy -= cost;
 		  }
       });
 	};
@@ -197,8 +193,8 @@ export function reproduceWithNearbyAgents(){
 
 export function setAppearance(){
 	return function(agent, world){
-	  agent.state.width = 20 + agent.state.energy/100;
-	  agent.state.height = 20 + agent.state.energy/100;
+	  agent.state.width = 8 + agent.state.energy/5;
+	  agent.state.height = 8 + agent.state.energy/5;
 	};
 }
 
@@ -218,7 +214,7 @@ export function dieIfNoEnergy(){
 	return function(agent, world){
 	  if(agent.state.energy < 0){
 		killAgentById(agent.id, world);
-        console.log(`${agent.id} died from lack of energy.`)
+        console.log(`${agent.id} died from lack of energy.`);
 	  }
 	};
 }

@@ -36,6 +36,7 @@ var sketch = (p) => {
         world.agents.forEach(agent => {
             render.drawAgent(p, agent);
         });
+
     };
 };
 
@@ -46,25 +47,18 @@ setInterval(() => {
 }, 200);
 setInterval(() => {
   console.log(world);
-}, 2000);
+}, 5000);
 
 function writeLog(){
-  var agentCount = 0;
   var index = {};
   var keys = [];
   world.agents.map(agent => {
-    agentCount ++;
-    agent.dna.genes.map(gene =>{
-      if(keys.indexOf(gene.key) === -1){
-        keys.push(gene.key);
-      }
-      index[gene.key] = index[gene.key] || {
-        total: 0,
-        count: 0
-    };
-      index[gene.key].total += gene.value;
-      index[gene.key].count ++;
-  });
+    agent.dna.genes.map(gene => {
+        count(gene.key, gene.value);
+    });
+    count('kills', agent.state.kills);
+    count('energyChange', agent.state.energyChange);
+    count('energy', agent.state.energy);
   });
   var str = '';
   str += `<p>Agents: ${world.agents.length}</p>`;
@@ -73,4 +67,16 @@ function writeLog(){
     str += `<p>${key}: ${average}</p>`;
 });
   document.getElementById('ev-log').innerHTML = str;
+
+  function count(key, value){
+      if(keys.indexOf(key) === -1){
+        keys.push(key);
+      }
+      index[key] = index[key] || {
+        total: 0,
+        count: 0
+    };
+      index[key].total += value;
+      index[key].count ++;
+  }
 }

@@ -15,7 +15,8 @@ export class DNA {
             this.setGene(new Gene(gene.key, gene.value, gene.express));
         });
         // the max percent a mutation can move the gene
-        this.mutationRate = this.mutationRate || 0.1;
+        this.mutationChance = 0.1;
+        this.mutationSize = 0.3;
     }
     reproduce(partnerDna) {
         var newDna = new DNA(partnerDna.genes);
@@ -23,8 +24,8 @@ export class DNA {
             var gene = this.genes[i];
             var key = gene.key;
             var partnerGene = partnerDna.getGene(key);
-            var newValue = mutate(selectRandom([partnerGene.value, gene.value]), this.mutationRate);
-            gene.value = newValue
+            var newValue = mutate(selectRandom([partnerGene.value, gene.value]), this.mutationChance, this.mutationSize);
+            gene.value = newValue;
             newDna.setGene(gene);
         }
         return newDna;
@@ -72,8 +73,11 @@ function selectRandom(arr) {
     return arr[Math.floor(arr.length & Math.random)];
 }
 
-function mutate(baseValue, mutationPercent) {
-    var mutation = (Math.random() - 0.5) * 2 * mutationPercent;
+function mutate(baseValue, mutationChance, mutationSize) {
+    var mutation = 0;
+    if(Math.random() < mutationChance){
+        mutation = (Math.random() - 0.5) * 2 * mutationSize;
+    }
     var mutated = baseValue + mutation;
     return mutated;
 }
