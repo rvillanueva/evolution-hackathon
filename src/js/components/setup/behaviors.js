@@ -44,11 +44,28 @@ export function applyEffects(){
 	};
 }
 
+
+export function calculateKinships(){
+	return function(agent, world){
+		agent.perceived.agents.map(p => {
+            if(!agent.kinships[p.id]){
+                agent.kinships[p.id] = 1 - math.abs(math.mean(math.subtract(agent.geneMatrix, p.agent.geneMatrix)));
+            }
+		});
+	};
+}
+
 export function adjustEnergy(){
 	return function(agent, world){
-        var change = -4 * (agent.traits.foodchain - 0.7)/config.fps;
-        change -= agent.state.energy / 100 /config.fps;
-        change -= agent.traits.maxSpeed / 5 / config.fps;
+        var change = 0;
+        var threshold = 0.5;
+        if(agent.traits.foodchain < threshold){
+            change += 0.01 + 200/(world.agents.length + 1) * (threshold - agent.traits.foodchain)/config.fps;
+        } else {
+            change -= (agent.traits.foodchain - threshold)/config.fps;
+        }
+        change -= agent.state.energy / 1000 / config.fps;
+        change -= agent.traits.maxSpeed / (agent.state.energy + 1) / config.fps;
 	    agent.state.energy += change;
         agent.state.energyChange = change * config.fps;
     };
@@ -57,7 +74,7 @@ export function adjustEnergy(){
 export function bounce(){
 	return function(agent, world){
 		var position = agent.state.position;
-		var margin = 5;
+		var margin = agent.state.width/2;
 		if(position.x > (world.width - margin)){
 			agent.state.position.x = world.width - margin;
 			agent.state.velocity.x = agent.state.velocity.x * -1;
@@ -150,34 +167,29 @@ export function eatAdjacentAgents(){
 	return function(agent, world){
 		agent.perceived.agents.map(a => {
 		  var targeted = world.getAgentById(a.id);
-		  if (targeted && a.distance < (agent.state.width + a.agent.state.width)/2.2 && targeted.traits.foodchain < agent.traits.foodchain * 0.8) {
+		  if (
+              targeted && a.distance < (agent.state.width + a.agent.state.width)/2.2 &&
+              targeted.traits.foodchain < agent.traits.foodchain * 0.65 &&
+              targeted.state.energy * 0.75 < agent.state.energy &&
+              agent.kinships[a.id] < agent.traits.kinshipThreshold
+          ) {
                 console.log(`${agent.id} killed ${a.id}`);
 			  killAgentById(targeted.id, world);
 			  agent.state.kills = agent.state.kills || 0;
 			  agent.state.kills ++;
-			  agent.state.energy += targeted.state.energy * 0.75;
+			  agent.state.energy += targeted.state.energy * 0.65;
 		  };
       });
 	};
 }
 
-export function applyAgentAttraction(calc, name){
-	return function(agent, world){
-	  agent.perceived.agents.forEach(a => {
-		var force = calc(agent, a);
-		a.effects.attraction.add(force);
-		a.effects.list.push({
-		  name: name,
-		  force: force
-      });
-  });
-	};
-}
-
 export function reproduceWithNearbyAgents(){
 	return function(agent, world){
+        var nearby = agent.perceived.agents.filter(a => {
+            return a.distance < 100;
+        });
 		agent.perceived.agents.map(a => {
-		  if(a.distance < (agent.state.width + a.agent.state.width)/2.2 && Math.random() < agent.traits.reproductionRate && world.agents.length < 100 && agent.perceived.agents < 25){
+		  if(a.distance < agent.traits.reproductionDistance && Math.random() < agent.traits.reproductionRate && world.agents.length < 100 && nearby.length < 10){
 			console.log(`${agent.id} reproduced with ${a.id}`);
             var cost = agent.traits.offspringSize * agent.state.energy;
 			var newDNA = agent.dna.reproduce(a.agent.dna);

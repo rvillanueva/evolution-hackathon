@@ -16,6 +16,13 @@ export function setupWorld(world) {
     function setupRandomAgent(){
         let dna = new DNA(AgentModel.genes);
         dna.randomize();
+        AgentModel.perceptrons.map(perceptron => {
+            AgentModel.effects.map(effect => {
+                dna.setGene(new Gene(`weight_${perceptron.key}_${effect.key}`, Math.random(), (val) => {
+                    return val;
+                }));
+            });
+        });
         let agent = world.setupAgent(dna);
         world.addAgent(agent);
     }
@@ -24,13 +31,6 @@ export function setupWorld(world) {
         var config = AgentModel;
         var agent = new Agent();
         agent.type = config.type;
-        AgentModel.perceptrons.map(perceptron => {
-            AgentModel.effects.map(effect => {
-                dna.setGene(new Gene(`weight_${perceptron.key}_${effect.key}`, Math.random(), (val) => {
-                    return val;
-                }));
-            });
-        });
         agent.setDNA(dna);
         for (let j = 0; j < config.behaviors.length; j++) {
             agent.addBehavior(config.behaviors[j]);
@@ -49,6 +49,14 @@ export function setupWorld(world) {
             arr1.push(arr2);
         });
         agent.weights = math.matrix(arr1);
+
+        var geneArr = [];
+        agent.dna.genes.map(gene => {
+            geneArr.push(gene.value);
+        });
+        agent.geneMatrix = math.matrix(geneArr);
+
+        agent.kinships = {};
         return agent;
     }
 

@@ -35,7 +35,7 @@ class World {
   removeAgentById(id){
     this.agents = this.agents.filter(agent => {
       return agent.id !== id;
-    })
+  });
     delete this.agentIndex[id];
   }
 

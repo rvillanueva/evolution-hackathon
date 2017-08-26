@@ -26,7 +26,7 @@ var genes = [
     {
         key: 'vision',
         express: function(val){
-            return val * 400;
+            return val * 300;
         }
     },
     {
@@ -56,7 +56,13 @@ var genes = [
     {
         key: 'reproductionRate',
         express: function(val){
-            return val * 0.001;
+            return val * 0.05;
+        }
+    },
+    {
+        key: 'reproductionDistance',
+        express: function(val){
+            return val * 100;
         }
     },
     {
@@ -76,6 +82,12 @@ var genes = [
         express: function(val){
             return val * 0.4;
         }
+    },
+    {
+        key: 'kinshipThreshold',
+        express: function(val){
+            return val * 0.2 + 0.8;
+        }
     }
 ];
 
@@ -94,7 +106,13 @@ var perceptrons = [{
 {
   key: 'foodchain',
   input: (agent, p) => {
-    return normalize(p.agent.traits.foodchain, 0, 50);
+    return p.agent.traits.foodchain;
+  }
+},
+{
+  key: 'energy',
+  input: (agent, p) => {
+    return normalize(p.agent.state.energy, 0, 1000);
   }
 }];
 
@@ -107,9 +125,10 @@ var effects = [{
 
 var modelBehaviors = [
   new Behavior(behaviors.wrap()),
+  new Behavior(behaviors.resetAcceleration()),
   new Behavior(behaviors.adjustEnergy()),
   new Behavior(behaviors.perceive(perceptrons, effects)),
-  new Behavior(behaviors.resetAcceleration()),
+  new Behavior(behaviors.calculateKinships()),
   new Behavior(behaviors.applyEffects()),
   new Behavior(behaviors.reproduceWithNearbyAgents()),
   new Behavior(behaviors.eatAdjacentAgents()),

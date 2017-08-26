@@ -11,7 +11,7 @@ export class Gene {
 export class DNA {
     constructor(genes) {
         this.genes = [];
-        genes.forEach(gene => {
+        genes.map(gene => {
             this.setGene(new Gene(gene.key, gene.value, gene.express));
         });
         // the max percent a mutation can move the gene
@@ -55,15 +55,17 @@ export class DNA {
             gene.value = 0;
         }
         gene.value = Math.floor(gene.value * 1000) / 1000;
-        for (var i = 0; i < this.genes.length; i++) {
-            let gene = this.genes[i];
-            if (gene.key == key) {
-                gene.value = value;
-                gene.express = express;
-                return;
+        var found = false;
+        this.genes = this.genes.map(g =>{
+            if(g.key === gene.key){
+                found = true;
+                return gene;
             }
+            return g;
+        });
+        if(!found){
+            this.genes.push(gene);
         }
-        this.genes.push(gene);
     }
 }
 
