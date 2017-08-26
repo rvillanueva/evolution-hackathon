@@ -30,12 +30,20 @@ var sketch = (p) => {
     p.draw = () => {
         p.background(255);
         p.stroke(4);
+        world.agents.sort((a, b) => {
+            return b.state.energy - a.state.energy;
+        });
         world.agents.forEach(agent => {
             agent.update(world);
         });
         world.agents.forEach(agent => {
             render.drawAgent(p, agent);
         });
+        if(world.agents.length < 10){
+            for(var i = 0; i < 10; i++){
+                world.createRandomAgent();
+            }
+        }
 
     };
 };
@@ -59,12 +67,22 @@ function writeLog(){
     count('kills', agent.state.kills);
     count('energyChange', agent.state.energyChange);
     count('energy', agent.state.energy);
+    count('velX', agent.state.velocity.x);
+    count('velY', agent.state.velocity.y);
+    if(agent.perceived){
+        count('perceived', agent.perceived.agents.length);
+        agent.perceived.agents.map(a => {
+            count('attraction', a.effects.attraction);
+        });
+    }
   });
   var str = '';
   str += `<p>Agents: ${world.agents.length}</p>`;
   keys.map(key => {
-    var average = Math.floor(index[key].total/index[key].count * 100)/100;
-    str += `<p>${key}: ${average}</p>`;
+      if(index[key].count){
+          var average = Math.floor(index[key].total/index[key].count * 100)/100;
+          str += `<p>${key}: ${average}</p>`;
+      }
 });
   document.getElementById('ev-log').innerHTML = str;
 

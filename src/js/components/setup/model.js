@@ -2,13 +2,9 @@ import { Behavior } from '../evolution';
 import * as behaviors from './behaviors';
 
 function normalize(x, min, max){
-    var ans;
-  if(x < max){
-    ans = (x - min)/(max - min);
-  } else {
-    ans = (x - max - min)/(max - min) + Math.log(x - max + 1);
-  }
-  return ans;
+    x = Math.min(x, min);
+    x = Math.max(x, max);
+    return (x - min)/(max - min);
 }
 
 var genes = [
@@ -42,12 +38,6 @@ var genes = [
         }
     },
     {
-        key: 'color-l',
-        express: function(val){
-            return Math.floor(val * 30 + 50);
-        }
-    },
-    {
         key: 'killRange',
         express: function(val){
             return val * 20;
@@ -57,12 +47,6 @@ var genes = [
         key: 'reproductionRate',
         express: function(val){
             return val * 0.05;
-        }
-    },
-    {
-        key: 'reproductionDistance',
-        express: function(val){
-            return val * 100;
         }
     },
     {
@@ -88,15 +72,16 @@ var genes = [
         express: function(val){
             return val * 0.2 + 0.8;
         }
+    },
+    {
+        key: 'edgeAvoidance',
+        express: function(val){
+            return val * 10;
+        }
     }
 ];
 
-var perceptrons = [{
-  key: 'distance',
-  input: (agent, p) => {
-    return normalize(p.agent.state.position.dist(agent.state.position), 0, 10);
-  }
-},
+var perceptrons = [
 {
   key: 'kills',
   input: (agent, p) => {
@@ -110,9 +95,25 @@ var perceptrons = [{
   }
 },
 {
-  key: 'energy',
+  key: 'otherEnergy',
   input: (agent, p) => {
     return normalize(p.agent.state.energy, 0, 1000);
+  }
+},
+{
+  key: 'ownEnergy',
+  input: (agent, p) => {
+    return normalize(agent.state.energy, 0, 1000);
+  }
+},
+{
+  key: 'kinship',
+  input: (agent, p) => {
+      if(agent.kinships[p.id]){
+          return normalize(agent.kinships[p.id], 0, 1);
+      } else {
+          return 0;
+      }
   }
 }];
 
@@ -124,12 +125,14 @@ var effects = [{
 }];
 
 var modelBehaviors = [
-  new Behavior(behaviors.wrap()),
+  new Behavior(behaviors.bounce()),
   new Behavior(behaviors.resetAcceleration()),
   new Behavior(behaviors.adjustEnergy()),
   new Behavior(behaviors.perceive(perceptrons, effects)),
   new Behavior(behaviors.calculateKinships()),
   new Behavior(behaviors.applyEffects()),
+  new Behavior(behaviors.spread()),
+  new Behavior(behaviors.avoidEdge()),
   new Behavior(behaviors.reproduceWithNearbyAgents()),
   new Behavior(behaviors.eatAdjacentAgents()),
   new Behavior(behaviors.setAppearance()),

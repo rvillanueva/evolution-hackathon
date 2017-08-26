@@ -11,7 +11,7 @@ export function perceive(perceptrons, effects) {
 		};
 		world.agents.forEach(a => {
             var distance = agent.state.position.dist(a.state.position);
-			if (a.id == agent.id || distance > agent.traits.vision) {
+			if (a.id == agent.id || distance > (agent.traits.vision + agent.state.width/2)) {
 				return;
 			}
 			var pushed = {
@@ -26,7 +26,8 @@ export function perceive(perceptrons, effects) {
 			});
 			var outputs = math.multiply([layer_1], agent.weights);
 			effects.map((effect, e) => {
-				pushed.effects[effect.key] = math.subset(outputs, math.index(0, e));
+                var output = math.subset(outputs, math.index(0, e));
+				pushed.effects[effect.key] = output/layer_1.length;
 			});
 			agent.perceived.agents.push(pushed);
 		});
@@ -36,11 +37,33 @@ export function perceive(perceptrons, effects) {
 export function applyEffects(){
 	return function(agent, world){
 		agent.perceived.agents.map(p => {
-			var force = p.agent.state.position.copy();
+			var force = agent.state.position.copy().sub(p.agent.state.position);
+            force.normalize();
 			force.mult((p.effects.attraction - 0.5));
             force.mult(agent.traits.attractionSensitivity);
 			agent.state.acceleration.add(force);
 		});
+	};
+}
+
+export function spread(){
+	return function(agent, world){
+		var overlapping = agent.perceived.agents.filter(p => {
+            return p.distance < (agent.state.width + p.agent.state.width)/2;
+		});
+        if(overlapping.length > 2){
+            var center = createVector();
+            var overlappingEnergy = 0;
+            overlapping.map(p => {
+                overlappingEnergy += p.agent.state.energy;
+                center.add(p.agent.state.position);
+            });
+            center.div(overlapping.length);
+            var force = center.sub(agent.state.position);
+            force.normalize();
+            force.mult(-100 * overlappingEnergy/agent.state.energy);
+            agent.state.acceleration.add(force);
+        }
 	};
 }
 
@@ -97,17 +120,17 @@ export function bounce(){
 export function wrap(){
 	return function(agent, world){
 		var position = agent.state.position;
-		if(position.x > (world.width + agent.state.width)){
+		if(position.x > (world.width + agent.state.width/2)){
 			agent.state.position.x = -agent.state.width;
 		};
-		if(position.x < -agent.state.width){
-			agent.state.position.x = world.width + agent.state.width;
+		if(position.x < -agent.state.width/2){
+			agent.state.position.x = world.width + agent.state.width/2;
 		};
-		if(position.y > (world.height + agent.state.height)){
-			agent.state.position.y = -agent.state.height;
+		if(position.y > (world.height + agent.state.height/2)){
+			agent.state.position.y = -agent.state.height/2;
 		};
-		if(position.y < -agent.state.height){
-			agent.state.position.y = world.height + agent.state.height;
+		if(position.y < -agent.state.height/2){
+			agent.state.position.y = world.height + agent.state.height/2;
 		};
 	};
 }
@@ -163,13 +186,32 @@ export function resetAcceleration(){
 	};
 }
 
+export function avoidEdge(){
+	return function(agent, world){
+        var margin = 100;
+        var mag = agent.traits.edgeAvoidance;
+        var force = createVector();
+		if(agent.state.position.x > world.width - margin){
+            force.add(createVector(-mag, 0));
+        } else if(agent.state.position.x < margin){
+            force.add(createVector(mag, 0));
+        }
+        if(agent.state.position.y > world.height - margin){
+            force.add(createVector(0, -mag));
+        } else if(agent.state.position.y < margin){
+            force.add(createVector(0, mag));
+        }
+        agent.state.acceleration.add(force);
+	};
+}
+
 export function eatAdjacentAgents(){
 	return function(agent, world){
 		agent.perceived.agents.map(a => {
 		  var targeted = world.getAgentById(a.id);
 		  if (
               targeted && a.distance < (agent.state.width + a.agent.state.width)/2.2 &&
-              targeted.traits.foodchain < agent.traits.foodchain * 0.65 &&
+              targeted.traits.foodchain < agent.traits.foodchain * 0.8 &&
               targeted.state.energy * 0.75 < agent.state.energy &&
               agent.kinships[a.id] < agent.traits.kinshipThreshold
           ) {
@@ -185,16 +227,17 @@ export function eatAdjacentAgents(){
 
 export function reproduceWithNearbyAgents(){
 	return function(agent, world){
-        var nearby = agent.perceived.agents.filter(a => {
-            return a.distance < 100;
-        });
 		agent.perceived.agents.map(a => {
-		  if(a.distance < agent.traits.reproductionDistance && Math.random() < agent.traits.reproductionRate && world.agents.length < 100 && nearby.length < 10){
+		  if(a.distance < (agent.state.width + a.agent.state.width)/2 && Math.random() < agent.traits.reproductionRate && world.agents.length < 75){
 			console.log(`${agent.id} reproduced with ${a.id}`);
             var cost = agent.traits.offspringSize * agent.state.energy;
 			var newDNA = agent.dna.reproduce(a.agent.dna);
 			var newAgent = world.setupAgent(newDNA);
 			newAgent.state.position = agent.state.position.copy();
+            var newVelocity = createVector();
+            newVelocity.add(agent.state.velocity, a.agent.state.velocity);
+            newVelocity.mult(0.5);
+            newAgent.state.velocity = newVelocity;
             newAgent.state.energy = cost;
             agent.state.energy -= cost;
 			world.addAgent(newAgent);
@@ -205,8 +248,8 @@ export function reproduceWithNearbyAgents(){
 
 export function setAppearance(){
 	return function(agent, world){
-	  agent.state.width = 8 + agent.state.energy/5;
-	  agent.state.height = 8 + agent.state.energy/5;
+	  agent.state.width = 8 + Math.pow(agent.state.energy, 0.5) * 2;
+	  agent.state.height = 8 + Math.pow(agent.state.energy, 0.5) * 2;
 	};
 }
 
