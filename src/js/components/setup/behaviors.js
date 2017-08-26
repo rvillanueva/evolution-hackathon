@@ -1,4 +1,6 @@
 import config from '../../config';
+import AgentModel from './model';
+const math = require('mathjs');
 
 export function perceive(){
     return function(agent, world){
@@ -12,14 +14,16 @@ export function perceive(){
         var pushed = {
           id: a.id,
           agent: a,
-          distance: a.state.position.dist(agent.state.position),
-          threat: a.state.kills,
-          effects: {
-            attraction: createVector(),
-            alignment: createVector(),
-            list: []
-          }
-        }
+          effects: {}
+        };
+        var layer_1 = [];
+        AgentModel.perceptrons.map(perceptron => {
+          matrix.push(perceptron.input(agent, a));
+        })
+        var outputs = math.multiply(agent.perceptionMatrix);
+        AgentModel.effects.map((effect, e) => {
+          pushed.effects[effect.key] = outputs[e][0];
+        })
         agent.perceived.agents.push(pushed);
       })
     };
@@ -205,7 +209,7 @@ export function setAppearance(){
     };
 }
 
-export function applyForces(){
+export function applyAttractionPerceptrons(){
     return function(agent, world){
       var sum = createVector();
       agent.perceived.agents.map(a => {

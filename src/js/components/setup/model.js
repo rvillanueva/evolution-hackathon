@@ -1,6 +1,15 @@
 import { Behavior } from '../evolution';
 import * as behaviors from './behaviors';
 
+function normalize(x, min, max){
+  if(x < max){
+    return (x - min)/(max - min);
+  } else {
+    return (x - max - min)/(max - min) + Math.log(max - x + 1);
+  }
+}
+
+
 module.exports = {
     type: 'base',
     genes: [
@@ -98,20 +107,9 @@ module.exports = {
       new Behavior(behaviors.wrap()),
       new Behavior(behaviors.getEnergy()),
       new Behavior(behaviors.perceive()),
-      new Behavior(behaviors.labelPerceivedAgents()),
       new Behavior(behaviors.resetAcceleration()),
-      //new Behavior(behaviors.groupWithAgentsByStatus('friend', 'seekFriends')),
-      //new Behavior(behaviors.groupWithAgentsByStatus('enemy', 'seekEnemies')),
-      new Behavior(behaviors.applyAgentAttraction(function(agent, p){
-        var force = createVector();
-        if(p.agent.threat * agent.traits.fear){
-          force.add(p.agent.position);
-          force.normalize();
-        }
-        return force;
-      })),
-      //new Behavior(behaviors.separateFromAgentsByStatus('enemy', 'fleeEnemies')),
-      //new Behavior(behaviors.alignWithAgents()),
+      new Behavior(behaviors.labelPerceivedAgents()),
+      new Behavior(behaviors.applyEffects(),
       new Behavior(behaviors.reproduceWithNearbyAgents()),
       new Behavior(behaviors.killNearbyAgents()),
       new Behavior(behaviors.setAppearance()),
@@ -119,5 +117,41 @@ module.exports = {
       new Behavior(behaviors.applyAcceleration()),
       new Behavior(behaviors.applyVelocity()),
       new Behavior(behaviors.dieIfDead())
-    ]
+    ],
+    perceptrons: [{
+      key: 'distance',
+      input: (agent, p) => {
+        return normalize(p.state.position.dist(agent.state.position), 0, 10)
+      }
+    },
+    {
+      key: 'kills',
+      input: (agent, p) => {
+        return normalize(p.agent.state.kills, 0, 50)
+      }
+    }],
+    effects: [{
+      key: 'attraction',
+      output: val => {
+        return val * 100;
+      }
+    },
+    {
+      key: 'threat',
+      output: val => {
+        return val * 100;
+      }
+    },
+    {
+      key: 'weakness',
+      output: val => {
+        return val * 100;
+      }
+    },
+    {
+      key: 'weakness',
+      output: val => {
+        return val * 100;
+      }
+    }]
 };

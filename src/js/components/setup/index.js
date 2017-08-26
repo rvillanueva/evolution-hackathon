@@ -28,6 +28,7 @@ export function setupWorld(world) {
         agent.state.energy = 100;
         agent.state.kills = 0;
         agent.state.hunger = 0;
+        agent.perceptrons = AgentModel.perceptrons;
         return agent;
     }
 
