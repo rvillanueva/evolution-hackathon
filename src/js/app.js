@@ -13,6 +13,7 @@ import { World } from './components/evolution';
 import * as render from './components/render';
 import * as setup from './components/setup';
 import config from './config';
+
 var world = new World({
     width: config.width,
     height: config.height,
@@ -42,10 +43,10 @@ var myP5 = new p5(sketch);
 
 setInterval(() => {
   writeLog();
-}, 200)
+}, 200);
 setInterval(() => {
   console.log(world);
-}, 2000)
+}, 2000);
 
 function writeLog(){
   var agentCount = 0;
@@ -60,16 +61,16 @@ function writeLog(){
       index[gene.key] = index[gene.key] || {
         total: 0,
         count: 0
-      }
+    };
       index[gene.key].total += gene.value;
       index[gene.key].count ++;
-    })
-  })
+  });
+  });
   var str = '';
   str += `<p>Agents: ${world.agents.length}</p>`;
   keys.map(key => {
     var average = Math.floor(index[key].total/index[key].count * 100)/100;
     str += `<p>${key}: ${average}</p>`;
-  })
+});
   document.getElementById('ev-log').innerHTML = str;
 }
