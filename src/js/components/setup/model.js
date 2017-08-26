@@ -68,15 +68,21 @@ var genes = [
         }
     },
     {
-        key: 'kinshipThreshold',
-        express: function(val){
-            return val * 0.2 + 0.8;
-        }
-    },
-    {
         key: 'edgeAvoidance',
         express: function(val){
             return val * 10;
+        }
+    },
+    {
+        key: 'threatSensitivity',
+        express: function(val){
+            return val;
+        }
+    },
+    {
+        key: 'vulnerabilitySensitivity',
+        express: function(val){
+            return val;
         }
     }
 ];
@@ -122,10 +128,21 @@ var effects = [{
   output: val => {
     return val * 100;
   }
+},
+{
+  key: 'threat',
+  output: val => {
+    return val;
+  }
+},
+{
+  key: 'vulnerability',
+  output: val => {
+    return val;
+  }
 }];
 
 var modelBehaviors = [
-  new Behavior(behaviors.bounce()),
   new Behavior(behaviors.resetAcceleration()),
   new Behavior(behaviors.consumeEnergy()),
   new Behavior(behaviors.perceive(perceptrons, effects)),
@@ -134,11 +151,12 @@ var modelBehaviors = [
   new Behavior(behaviors.spread()),
   new Behavior(behaviors.avoidEdge()),
   new Behavior(behaviors.reproduceWithNearbyAgents()),
-  new Behavior(behaviors.eatAdjacentAgents()),
+  new Behavior(behaviors.attack()),
   new Behavior(behaviors.setAppearance()),
   new Behavior(behaviors.applyAcceleration()),
   new Behavior(behaviors.applyVelocity()),
-  new Behavior(behaviors.dieIfNoEnergy())
+  new Behavior(behaviors.dieIfNoEnergy()),
+  new Behavior(behaviors.bounce())
 ];
 
 module.exports = {

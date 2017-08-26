@@ -9,7 +9,7 @@
  *********************************************************************************/
 
 import p5 from 'p5';
-import { World } from './components/evolution';
+import World from './components/setup/world';
 import * as render from './components/render';
 import * as setup from './components/setup';
 import config from './config';
@@ -29,7 +29,6 @@ var sketch = (p) => {
 
     p.draw = () => {
         p.background(255);
-        p.stroke(4);
         world.energy = 10;
         world.agents.sort((a, b) => {
             return b.state.energy - a.state.energy;
@@ -42,7 +41,7 @@ var sketch = (p) => {
             a.state.energy += (1 - a.traits.foodchain)/total * world.energy;
         });
 
-        var chance = 0.01;
+        var chance = (1 - 20/(20 + world.agents.length)) * 0.005;
         if(Math.random() < chance){
             world.removeAgentById(world.agents[Math.floor(Math.random() * world.agents.length)].id);
             world.createRandomAgent();
