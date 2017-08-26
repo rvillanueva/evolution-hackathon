@@ -78,17 +78,10 @@ export function calculateKinships(){
 	};
 }
 
-export function adjustEnergy(){
+export function consumeEnergy(){
 	return function(agent, world){
         var change = 0;
-        var threshold = 0.5;
-        if(agent.traits.foodchain < threshold){
-            change += 0.01 + 200/(world.agents.length + 1) * (threshold - agent.traits.foodchain)/config.fps;
-        } else {
-            change -= (agent.traits.foodchain - threshold)/config.fps;
-        }
-        change -= agent.state.energy / 1000 / config.fps;
-        change -= agent.traits.maxSpeed / (agent.state.energy + 1) / config.fps;
+        change -= agent.state.energy * 0.01/config.fps * agent.traits.maxSpeed;
 	    agent.state.energy += change;
         agent.state.energyChange = change * config.fps;
     };
@@ -211,8 +204,8 @@ export function eatAdjacentAgents(){
 		  var targeted = world.getAgentById(a.id);
 		  if (
               targeted && a.distance < (agent.state.width + a.agent.state.width)/2.2 &&
-              targeted.traits.foodchain < agent.traits.foodchain * 0.8 &&
-              targeted.state.energy * 0.75 < agent.state.energy &&
+              targeted.traits.foodchain < agent.traits.foodchain * 0.85 &&
+              targeted.state.energy * 0.5 < agent.state.energy &&
               agent.kinships[a.id] < agent.traits.kinshipThreshold
           ) {
                 console.log(`${agent.id} killed ${a.id}`);
@@ -238,8 +231,8 @@ export function reproduceWithNearbyAgents(){
             newVelocity.add(agent.state.velocity, a.agent.state.velocity);
             newVelocity.mult(0.5);
             newAgent.state.velocity = newVelocity;
-            newAgent.state.energy = cost;
-            agent.state.energy -= cost;
+            newAgent.state.energy = cost * 0.8;
+            agent.state.energy -= cost * 1.2;
 			world.addAgent(newAgent);
 		  }
       });
@@ -248,8 +241,8 @@ export function reproduceWithNearbyAgents(){
 
 export function setAppearance(){
 	return function(agent, world){
-	  agent.state.width = 8 + Math.pow(agent.state.energy, 0.5) * 2;
-	  agent.state.height = 8 + Math.pow(agent.state.energy, 0.5) * 2;
+	  agent.state.width = 8 + Math.pow(agent.state.energy, 0.5) * 3;
+	  agent.state.height = 8 + Math.pow(agent.state.energy, 0.5) * 3;
 	};
 }
 

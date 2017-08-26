@@ -7,13 +7,13 @@ const math = require('mathjs');
 
 export function setupWorld(world) {
     world.setupAgent = setupAgent;
-    world.setupRandomAgent = setupRandomAgent;
+    world.createRandomAgent = createRandomAgent;
 
     for (let i = 0; i < 50; i++) {
-        setupRandomAgent();
+        createRandomAgent();
     }
 
-    function setupRandomAgent(){
+    function createRandomAgent(){
         let dna = new DNA(AgentModel.genes);
         dna.randomize();
         AgentModel.perceptrons.map(perceptron => {

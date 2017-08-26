@@ -127,7 +127,7 @@ var effects = [{
 var modelBehaviors = [
   new Behavior(behaviors.bounce()),
   new Behavior(behaviors.resetAcceleration()),
-  new Behavior(behaviors.adjustEnergy()),
+  new Behavior(behaviors.consumeEnergy()),
   new Behavior(behaviors.perceive(perceptrons, effects)),
   new Behavior(behaviors.calculateKinships()),
   new Behavior(behaviors.applyEffects()),

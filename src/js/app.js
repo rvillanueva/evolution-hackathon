@@ -30,9 +30,24 @@ var sketch = (p) => {
     p.draw = () => {
         p.background(255);
         p.stroke(4);
+        world.energy = 10;
         world.agents.sort((a, b) => {
             return b.state.energy - a.state.energy;
         });
+        var total = 0;
+        world.agents.map(a => {
+            total += (1 - a.traits.foodchain);
+        });
+        world.agents.forEach(a => {
+            a.state.energy += (1 - a.traits.foodchain)/total * world.energy;
+        });
+
+        var chance = 0.01;
+        if(Math.random() < chance){
+            world.removeAgentById(world.agents[Math.floor(Math.random() * world.agents.length)].id);
+            world.createRandomAgent();
+        }
+
         world.agents.forEach(agent => {
             agent.update(world);
         });
@@ -94,7 +109,9 @@ function writeLog(){
         total: 0,
         count: 0
     };
-      index[key].total += value;
-      index[key].count ++;
+    if(key && value){
+        index[key].total += value;
+        index[key].count ++;
+    }
   }
 }
